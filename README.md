@@ -1,3 +1,8 @@
+# Description
+
+Maps out a set of locations and given an address shows the distance and time to any of the given locations (in this case the set of fireworks shows around chicagoland).
+
+
 # Setup
 
 Enable google maps JS API: https://console.cloud.google.com/google/maps-apis/credentials
