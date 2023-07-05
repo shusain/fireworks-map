@@ -1,20 +1,32 @@
 import htmlString from './data_file.js'
 
 let parser = new DOMParser();
-let parsedHtml = parser.parseFromString(htmlString, 'text/html');
+let parsedHtml = parser.parseFromString(htmlString, 'text/html')
 let directionsService
 let directionsRenderer
 let gMap;
-let homeAddressElem = document.getElementById('homeAddress');
-let mapElem = document.getElementById('map');
+let homeAddressElem = document.getElementById('homeAddress') as HTMLInputElement
+let mapElem = document.getElementById('map')
+let distElem = document.getElementById('distanceAndDuration')
 const YEAR = 2023;
 const TARGET_DATE = 4;
 const TARGET_MONTH = 6; // 0 indexed
 
-function parseEvents() {
+interface HolidayEventType {
+  name: string,
+  url: string,
+  date: string,
+  time: string,
+  location: string,
+  address1: string,
+  address2: string
+}
+
+function parseEvents(): Array<HolidayEventType> {
   let eventWrappers = parsedHtml.querySelectorAll('h3.event-link-wrapper')
   return Array.from(eventWrappers).map(eventLinkWrapper => {
-    let eventName = eventLinkWrapper.textContent.trim();
+
+    let eventName = eventLinkWrapper.textContent?.trim();
     let eventLink = eventLinkWrapper.querySelector('a')
 
     // Just handling if no link found going to skip trying to parse this block
@@ -23,11 +35,11 @@ function parseEvents() {
     }
     let eventURL = eventLink.href;
 
-    let siblings = []
-    let siblingElem = eventLinkWrapper.nextElementSibling
+    let siblings: Array<String> = []
+    let siblingElem:HTMLElement|null = eventLinkWrapper.nextElementSibling as HTMLElement
     while (siblingElem) {
       siblings.push(siblingElem.innerText.trim())
-      siblingElem = siblingElem.nextElementSibling
+      siblingElem = siblingElem.nextElementSibling as HTMLElement
     }
 
     // If we didn't find a "full set" of data just going to skip on the parsing the block as well
@@ -49,22 +61,21 @@ function parseEvents() {
     .filter(datum => datum != null)
     // Remove anything that isn't specifically after the 3rd and before the 5th of July
     .filter(datum => {
-      return new Date(YEAR, TARGET_MONTH, TARGET_DATE - 1) < new Date(datum.date + ' ' + YEAR) && new Date(datum.date + ' ' + YEAR) < new Date(YEAR, TARGET_MONTH, TARGET_DATE + 1)
-    })
+      return new Date(YEAR, TARGET_MONTH, TARGET_DATE - 1) < new Date(datum!.date + ' ' + YEAR) && new Date(datum!.date + ' ' + YEAR) < new Date(YEAR, TARGET_MONTH, TARGET_DATE + 1)
+    }) as Array<HolidayEventType>
 
 }
 
-function geocodeAddress(address, callback) {
-  fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.API_KEY}`)
+function geocodeAddress(address) {
+  return fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.API_KEY}`)
     .then(response => response.json())
     .then(data => {
       if (data.status === "OK") {
-        callback(null, data.results[0].geometry.location);
+        return Promise.resolve(data.results[0].geometry.location)
       } else {
-        callback(data.status);
+        return Promise.reject(data.status)
       }
-    })
-    .catch(callback);
+    });
 }
 
 function calculateAndDisplayRoute(start, end) {
@@ -79,7 +90,7 @@ function calculateAndDisplayRoute(start, end) {
         directionsRenderer.setDirections(response);
         let distance = response.routes[0].legs[0].distance.text;
         let duration = response.routes[0].legs[0].duration.text;
-        document.getElementById('distanceAndDuration').innerHTML = `Distance: ${distance}, Duration: ${duration}`
+        distElem!.innerHTML = `Distance: ${distance}, Duration: ${duration}`
         console.log(`Distance: ${distance}, Duration: ${duration}`);
       } else {
         console.error('Directions request failed due to ' + status);
@@ -89,7 +100,7 @@ function calculateAndDisplayRoute(start, end) {
 }
 
 globalThis.initMap = function () {
-  gMap = new google.maps.Map(mapElem, {
+  gMap = new google.maps.Map(mapElem as HTMLElement, {
     center: { lat: 41.8781, lng: -87.6298 },
     zoom: 8
   });
@@ -105,10 +116,7 @@ globalThis.initMap = function () {
     let eventData = events[i];
     const { name, location: evtLocation, date, time, url, address1, address2 } = eventData
     let end = `${address1}, ${address2}`;
-    geocodeAddress(end, function (error, location) {
-      if (error) {
-        console.error(error);
-      } else {
+    geocodeAddress(end).then((location) => {
         // console.log(location);  // { lat: 37.4224764, lng: -122.0842499 }
         let marker = new google.maps.Marker({
           position: location,
@@ -117,7 +125,7 @@ globalThis.initMap = function () {
         });
         (function (marker) {
           google.maps.event.addListener(marker, 'click', function (e) {
-            let start = homeAddressElem.value;
+            let start = homeAddressElem!.value;
             calculateAndDisplayRoute(start, end);
             let gmapsDirectionsLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(end)}&travelmode=driving`;
 
@@ -127,7 +135,8 @@ globalThis.initMap = function () {
             infoWindow.open(gMap, marker);
           });
         })(marker);
-      }
-    })
+      }).catch((error) => {
+        console.error(error);
+      })
   }
 }
