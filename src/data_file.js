@@ -1,4 +1,4 @@
-export default htmlString = `<article data-testid="prism-article-body">
+export default `<article data-testid="prism-article-body">
   <h2 class="county">COOK COUNTY</h2>
   <h3 class="event-link-wrapper">
     <a href="https://www.barrington-il.gov/visitors/special_events/fourth_of_july_parade.php">Barrington 4th of July Celebration</a>

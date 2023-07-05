@@ -5,7 +5,10 @@
   "source": "src/index.html",
   "scripts": {
     "start": "parcel",
-    "build": "parcel build --no-optimize"
+    "build": "parcel build --no-optimize",
+    "build-docker": "docker build -t some-content-nginx .",
+    "run-docker": "docker run --name some-nginx -d -p 8080:80 some-content-nginx",
+    "clean-docker": "docker stop some-nginx && docker rm some-nginx"
   },
   "keywords": [],
   "author": "",
